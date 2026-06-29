@@ -17,4 +17,5 @@ k8s/overlays/dev/kustomization.yaml
 .DS_Store
 ._*
 _solution/
+Historique.md
 *.tar
