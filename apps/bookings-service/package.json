@@ -9,7 +9,7 @@
     "test": "echo 'bookings-service unit tests placeholder' && exit 0"
   },
   "dependencies": {
-    "next": "14.2.5",
+    "next": "15.5.18",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "pg": "8.12.0",
