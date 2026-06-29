@@ -1,0 +1,51 @@
+# =============================================================================
+# frontend (React + NGINX statique) — Deployment + Service
+# =============================================================================
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: salleenfrance
+spec:
+  selector:
+    app.kubernetes.io/name: frontend
+  ports:
+    - name: http
+      port: 80
+      # TODO : `targetPort` doit correspondre au port que votre conteneur
+      # écoute réellement (cf. Dockerfile.frontend, étape 5).
+      # Si vous utilisez `nginx-unprivileged`, ce n'est PAS 80.
+      targetPort: 0
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: salleenfrance
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/component: frontend
+spec:
+  # TODO : 3 répliques (frontend exposé sur Internet — cf. étape 9).
+  replicas: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: frontend
+        app.kubernetes.io/component: frontend
+        app.kubernetes.io/part-of: salleenfrance
+    spec:
+      containers:
+        - name: frontend
+          image: ""           # TODO
+          ports:
+            # TODO : containerPort = port d'écoute réel du conteneur
+            - containerPort: 0
+          # TODO : probes sur /healthz
+          readinessProbe: {}
+          livenessProbe:  {}
+          resources: {}        # TODO

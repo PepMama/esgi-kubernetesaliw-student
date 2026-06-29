@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# Le tag est injecté par `make deploy` à partir du SHA git.
+# `make deploy` fait `envsubst` sur ce fichier → kustomization.yaml
+images:
+  - name: salleenfrance/frontend
+    newTag: ${IMAGE_TAG}
+  - name: salleenfrance/auth-service
+    newTag: ${IMAGE_TAG}
+  - name: salleenfrance/sites-service
+    newTag: ${IMAGE_TAG}
+  - name: salleenfrance/rooms-service
+    newTag: ${IMAGE_TAG}
+  - name: salleenfrance/bookings-service
+    newTag: ${IMAGE_TAG}

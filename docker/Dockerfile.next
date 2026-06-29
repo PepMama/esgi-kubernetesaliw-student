@@ -1,0 +1,44 @@
+# =============================================================================
+# Dockerfile générique pour les services Next.js
+# Construit une image multi-stage minimaliste, non-root, avec /api/healthz.
+#
+# Usage : docker build -f docker/Dockerfile.next \
+#           --build-arg SERVICE=auth-service \
+#           -t salleenfrance/auth-service:<sha> \
+#           apps/auth-service
+# =============================================================================
+ARG SERVICE=auth-service
+
+FROM node:20-alpine AS deps
+WORKDIR /app
+COPY package.json ./
+RUN npm install --omit=dev --no-audit --no-fund
+
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY package.json ./
+RUN npm install --no-audit --no-fund
+COPY . .
+RUN npm run build
+
+FROM node:20-alpine AS runtime
+ARG SERVICE
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    HOSTNAME=0.0.0.0
+WORKDIR /app
+
+RUN addgroup -g 1001 -S app && adduser -u 1001 -S app -G app
+COPY --from=build --chown=app:app /app/.next/standalone ./
+COPY --from=build --chown=app:app /app/.next/static ./.next/static
+COPY --from=build --chown=app:app /app/public ./public
+
+USER 1001
+EXPOSE 3000
+HEALTHCHECK --interval=10s --timeout=3s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:${PORT:-3000}/api/healthz || exit 1
+
+LABEL org.opencontainers.image.source="https://github.com/salleenfrance/platform"
+LABEL org.opencontainers.image.title="${SERVICE}"
+
+CMD ["node", "server.js"]

@@ -1,0 +1,40 @@
+# =============================================================================
+# Certificats applicatifs — un par service. Émis par `salleenfrance-ca-issuer`.
+#
+# TODO : produisez les 4 Certificates manquants (sites, rooms, bookings,
+# ingress). Le patron pour `auth-service` est complété ci-dessous comme
+# référence ; les autres sont laissés vides.
+# =============================================================================
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: auth-service-tls
+  namespace: salleenfrance
+spec:
+  secretName: auth-service-tls
+  # TODO : durée + renouvellement (cf. polycopié, partie 11.1)
+  duration: 0h
+  renewBefore: 0h
+  commonName: auth-service
+  dnsNames:
+    - auth-service
+    - auth-service.salleenfrance
+    - auth-service.salleenfrance.svc
+    - auth-service.salleenfrance.svc.cluster.local
+  usages:
+    - server auth
+    - client auth
+    - digital signature
+    - key encipherment
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: salleenfrance-ca-issuer
+    kind: ClusterIssuer
+---
+# TODO : sites-service-tls
+# TODO : rooms-service-tls
+# TODO : bookings-service-tls
+# TODO : salleenfrance-tls (pour l'ingress, host = salleenfrance.local)

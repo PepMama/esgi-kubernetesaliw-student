@@ -1,0 +1,14 @@
+# =============================================================================
+# NetworkPolicies — bonus B2 du polycopié
+#
+# Politique par défaut "deny all", puis autorisations explicites.
+# TODO : à concevoir entièrement par le binôme (cf. bonus B2).
+# =============================================================================
+# apiVersion: networking.k8s.io/v1
+# kind: NetworkPolicy
+# metadata:
+#   name: default-deny
+#   namespace: salleenfrance
+# spec:
+#   podSelector: {}
+#   policyTypes: ["Ingress", "Egress"]

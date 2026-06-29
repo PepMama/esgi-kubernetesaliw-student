@@ -1,0 +1,47 @@
+# =============================================================================
+# PKI interne pilotée par cert-manager
+#
+# Architecture demandée :
+#   1) Issuer `selfsigned-bootstrap` (auto-signé, sert juste à signer le 2)
+#   2) Certificate `salleenfrance-ca` dans le namespace cert-manager,
+#      qui produit la PAIRE CA (cert + clé) du cluster
+#   3) ClusterIssuer `salleenfrance-ca-issuer` qui utilise la CA ci-dessus
+#      pour émettre les certificats applicatifs (étape 51)
+# =============================================================================
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: selfsigned-bootstrap
+  namespace: cert-manager
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: salleenfrance-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: SalleEnFrance Internal CA
+  # TODO : durée de vie de la CA (recommandation : 10 ans en TP).
+  duration: 0h
+  # TODO : renouvellement anticipé.
+  renewBefore: 0h
+  secretName: salleenfrance-ca-key-pair
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: selfsigned-bootstrap
+    kind: Issuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: salleenfrance-ca-issuer
+spec:
+  ca:
+    secretName: salleenfrance-ca-key-pair

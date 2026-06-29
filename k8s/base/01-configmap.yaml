@@ -1,0 +1,28 @@
+# =============================================================================
+# ConfigMap `app-config` — valeurs NON sensibles partagées par tous les services
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: salleenfrance
+  labels:
+    app.kubernetes.io/part-of: salleenfrance
+data:
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+
+  # --- URLs internes des services (DNS K8s) -----------------------------------
+  # Format attendu : http(s)://<service>.<namespace>.svc.cluster.local:<port>
+  # TODO : compléter chaque URL en respectant le port exposé par chaque Service
+  # et en réfléchissant à si vous activez ou non mTLS sur le chemin.
+  AUTH_SERVICE_URL:     ""   # TODO
+  SITES_SERVICE_URL:    ""   # TODO
+  ROOMS_SERVICE_URL:    ""   # TODO
+  BOOKINGS_SERVICE_URL: ""   # TODO
+
+  # --- Chemins des certificats injectés dans les pods (étape 11) --------------
+  # Convention proposée : /tls/tls.crt, /tls/tls.key, /tls/ca.crt
+  TLS_CERT_PATH: "/tls/tls.crt"
+  TLS_KEY_PATH:  "/tls/tls.key"
+  TLS_CA_PATH:   "/tls/ca.crt"

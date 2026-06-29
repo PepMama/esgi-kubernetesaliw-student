@@ -1,0 +1,34 @@
+# =============================================================================
+# Ingress — exposition HTTP/HTTPS de la plateforme via ingress-nginx
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: salleenfrance
+  namespace: salleenfrance
+  annotations:
+    # TODO : activer la regex sur les paths
+    # nginx.ingress.kubernetes.io/use-regex: "true"
+    # TODO : configurer le rewrite-target en cohérence avec vos paths
+    # nginx.ingress.kubernetes.io/rewrite-target: /$2
+    # TODO (étape 11) : si vous voulez exiger un certificat client côté
+    # Ingress pour les routes sensibles, voir auth-tls-* annotations.
+spec:
+  ingressClassName: nginx
+  # TODO (étape 11) : référencer le secret TLS produit par cert-manager
+  # tls:
+  #   - hosts: ["salleenfrance.local"]
+  #     secretName: salleenfrance-tls
+  rules:
+    - host: salleenfrance.local
+      http:
+        paths:
+          # TODO : compléter les 5 routes (/api/auth, /api/sites, /api/rooms,
+          # /api/bookings, /). Respectez le tableau du polycopié (étape 10).
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

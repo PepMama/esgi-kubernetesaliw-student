@@ -1,0 +1,37 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore kubeconfig from secret
+        # TODO : décoder ${{ secrets.KUBECONFIG_B64 }} dans ~/.kube/config
+        # ATTENTION : ne JAMAIS afficher le contenu dans les logs.
+        run: echo "TODO"
+
+      - name: Apply manifests (kustomize)
+        # TODO :
+        #   IMAGE_TAG=${{ github.sha }} envsubst < k8s/overlays/dev/kustomization.tmpl.yaml \
+        #     > k8s/overlays/dev/kustomization.yaml
+        #   kubectl apply -k k8s/overlays/dev
+        run: echo "TODO"
+
+      - name: Wait for rollout
+        # TODO : kubectl rollout status sur les 5 deployments
+        run: echo "TODO"
+
+      - name: Smoke test
+        # TODO : curl -sf https://salleenfrance.local/api/sites
+        run: echo "TODO"

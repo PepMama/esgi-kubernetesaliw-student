@@ -1,0 +1,11 @@
+# =============================================================================
+# Namespace applicatif `salleenfrance`
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: salleenfrance
+  labels:
+    app.kubernetes.io/part-of: salleenfrance
+    # TODO : ajoutez les labels de gouvernance que vous jugez utiles
+    # (env, team, cost-center…). Justifiez vos choix dans le rapport.

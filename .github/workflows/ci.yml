@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write   # cosign keyless
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/salleenfrance
+
+jobs:
+  lint:
+    name: Lint manifests & Dockerfiles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # TODO : installer yamllint et lancer sur k8s/
+      # TODO : installer kubeconform et lancer sur k8s/base + k8s/overlays
+      # TODO : hadolint sur docker/Dockerfile.next et docker/Dockerfile.frontend
+
+  test:
+    name: Tests unitaires
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [auth-service, sites-service, rooms-service, bookings-service, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/${{ matrix.service }}/package.json
+      # TODO : npm install + npm test (placeholders fournis dans les services)
+
+  build-and-scan:
+    name: Build, scan, sign, push
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        include:
+          - service: frontend
+            dockerfile: docker/Dockerfile.frontend
+            context: apps/frontend
+          - service: auth-service
+            dockerfile: docker/Dockerfile.next
+            context: apps/auth-service
+          - service: sites-service
+            dockerfile: docker/Dockerfile.next
+            context: apps/sites-service
+          - service: rooms-service
+            dockerfile: docker/Dockerfile.next
+            context: apps/rooms-service
+          - service: bookings-service
+            dockerfile: docker/Dockerfile.next
+            context: apps/bookings-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          # TODO : passer SERVICE en build-arg pour Dockerfile.next
+          push: false
+          load: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}:${{ github.sha }}
+
+      - name: Scan with Trivy
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.service }}:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Push image
+        # TODO : pousser l'image taggée par SHA, et également par `main`
+        run: echo "TODO push"
+
+      - name: Cosign install
+        uses: sigstore/cosign-installer@v3
+
+      - name: Cosign sign (keyless)
+        # TODO : signer ${REGISTRY}/${IMAGE_PREFIX}/${SERVICE}:${SHA}
+        run: echo "TODO cosign sign"

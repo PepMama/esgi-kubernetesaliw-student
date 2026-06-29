@@ -1,0 +1,18 @@
+{
+  "name": "bookings-service",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3004",
+    "build": "next build",
+    "start": "next start -p 3004",
+    "test": "echo 'bookings-service unit tests placeholder' && exit 0"
+  },
+  "dependencies": {
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "pg": "8.12.0",
+    "ioredis": "5.4.1"
+  }
+}

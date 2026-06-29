@@ -1,0 +1,114 @@
+# =============================================================================
+# SalleEnFrance — point de départ Docker Compose
+#
+# Cette stack est INTENTIONNELLEMENT monolithique au sens du déploiement :
+# tout tourne sur une seule machine. C'est l'état initial à migrer.
+# =============================================================================
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: salleenfrance
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: salleenfrance
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./seed/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "salleenfrance"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "PING"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  auth-service:
+    build:
+      context: apps/auth-service
+      dockerfile: ../../docker/Dockerfile.next
+      args:
+        SERVICE: auth-service
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgres://salleenfrance:changeme@postgres:5432/salleenfrance
+      JWT_SECRET: dev-secret-change-me
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  sites-service:
+    build:
+      context: apps/sites-service
+      dockerfile: ../../docker/Dockerfile.next
+      args:
+        SERVICE: sites-service
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DATABASE_URL: postgres://salleenfrance:changeme@postgres:5432/salleenfrance
+    ports:
+      - "3002:3002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  rooms-service:
+    build:
+      context: apps/rooms-service
+      dockerfile: ../../docker/Dockerfile.next
+      args:
+        SERVICE: rooms-service
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      DATABASE_URL: postgres://salleenfrance:changeme@postgres:5432/salleenfrance
+    ports:
+      - "3003:3003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  bookings-service:
+    build:
+      context: apps/bookings-service
+      dockerfile: ../../docker/Dockerfile.next
+      args:
+        SERVICE: bookings-service
+    environment:
+      NODE_ENV: production
+      PORT: 3004
+      DATABASE_URL: postgres://salleenfrance:changeme@postgres:5432/salleenfrance
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3004:3004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: apps/frontend
+      dockerfile: ../../docker/Dockerfile.frontend
+    ports:
+      - "5173:8080"
+    depends_on:
+      - auth-service
+      - sites-service
+      - rooms-service
+      - bookings-service
+
+volumes:
+  pgdata:
