@@ -14,13 +14,29 @@ resource "kind_cluster" "this" {
     kind        = "Cluster"
     api_version = "kind.x-k8s.io/v1alpha4"
 
-    # TODO : déclarer 2 nœuds (1 control-plane + 1 worker).
-    # Le worker DOIT publier les ports 80 et 443 vers l'hôte
-    # via `extra_port_mappings`. Indice : voir la doc tehcyx/kind.
-
     node {
       role = "control-plane"
-      # extra_port_mappings { ... }    # TODO : 80 et 443
+
+      kubeadm_config_patches = [
+        <<-YAML
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+        YAML
+      ]
+
+      extra_port_mappings {
+        container_port = 80
+        host_port      = 80
+        protocol       = "TCP"
+      }
+
+      extra_port_mappings {
+        container_port = 443
+        host_port      = 443
+        protocol       = "TCP"
+      }
     }
 
     node {
@@ -56,13 +72,36 @@ resource "helm_release" "ingress_nginx" {
   create_namespace = true
   version          = var.ingress_chart_version
 
-  # TODO : épingler le controller au nœud worker (label `ingress-ready=true`)
-  # et exposer en hostNetwork pour profiter des extra_port_mappings de kind.
-  # Indices :
-  #   set { name = "controller.nodeSelector.ingress-ready" value = "true" }
-  #   set { name = "controller.tolerations[0].key" ... }
-  #   set { name = "controller.hostPort.enabled" value = "true" }
-  #   set { name = "controller.service.type" value = "NodePort" }
+  set {
+    name  = "controller.nodeSelector.ingress-ready"
+    value = "true"
+    type  = "string"
+  }
+
+  set {
+    name  = "controller.tolerations[0].key"
+    value = "node-role.kubernetes.io/control-plane"
+  }
+
+  set {
+    name  = "controller.tolerations[0].operator"
+    value = "Exists"
+  }
+
+  set {
+    name  = "controller.tolerations[0].effect"
+    value = "NoSchedule"
+  }
+
+  set {
+    name  = "controller.hostPort.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "controller.service.type"
+    value = "NodePort"
+  }
 }
 
 # -----------------------------------------------------------------------------

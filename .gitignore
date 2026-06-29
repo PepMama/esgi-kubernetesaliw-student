@@ -11,6 +11,7 @@ terraform/*.tfstate
 terraform/*.tfstate.backup
 terraform/.terraform.lock.hcl
 terraform/kubeconfig
+terraform/*-config
 
 k8s/overlays/dev/kustomization.yaml
 
