@@ -6,6 +6,9 @@ kind: Namespace
 metadata:
   name: salleenfrance
   labels:
+    app.kubernetes.io/name: salleenfrance
     app.kubernetes.io/part-of: salleenfrance
-    # TODO : ajoutez les labels de gouvernance que vous jugez utiles
-    # (env, team, cost-center…). Justifiez vos choix dans le rapport.
+    app.kubernetes.io/managed-by: kustomize
+    environment: dev
+    team: esgi-m2
+    cost-center: education

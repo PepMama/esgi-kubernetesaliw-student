@@ -7,19 +7,20 @@ metadata:
   name: app-config
   namespace: salleenfrance
   labels:
+    app.kubernetes.io/name: app-config
     app.kubernetes.io/part-of: salleenfrance
+    app.kubernetes.io/managed-by: kustomize
 data:
   NODE_ENV: "production"
   LOG_LEVEL: "info"
 
   # --- URLs internes des services (DNS K8s) -----------------------------------
   # Format attendu : http(s)://<service>.<namespace>.svc.cluster.local:<port>
-  # TODO : compléter chaque URL en respectant le port exposé par chaque Service
-  # et en réfléchissant à si vous activez ou non mTLS sur le chemin.
-  AUTH_SERVICE_URL:     ""   # TODO
-  SITES_SERVICE_URL:    ""   # TODO
-  ROOMS_SERVICE_URL:    ""   # TODO
-  BOOKINGS_SERVICE_URL: ""   # TODO
+  # mTLS ne sont pas encore utilisés, les URLs restent HTTP.
+  AUTH_SERVICE_URL: "http://auth-service.salleenfrance.svc.cluster.local:3001"
+  SITES_SERVICE_URL: "http://sites-service.salleenfrance.svc.cluster.local:3002"
+  ROOMS_SERVICE_URL: "http://rooms-service.salleenfrance.svc.cluster.local:3003"
+  BOOKINGS_SERVICE_URL: "http://bookings-service.salleenfrance.svc.cluster.local:3004"
 
   # --- Chemins des certificats injectés dans les pods (étape 11) --------------
   # Convention proposée : /tls/tls.crt, /tls/tls.key, /tls/ca.crt
