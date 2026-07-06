@@ -7,23 +7,33 @@ kind: ConfigMap
 metadata:
   name: redis-config
   namespace: salleenfrance
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: salleenfrance
+    app.kubernetes.io/managed-by: kustomize
 data:
   redis.conf: |
     maxmemory 128mb
     maxmemory-policy allkeys-lru
-    # TODO : ajustez ou ajoutez les directives que vous jugez nécessaires
-    # (appendonly ? save ? requirepass ?)
+    appendonly no
+    save ""
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: redis
   namespace: salleenfrance
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: salleenfrance
+    app.kubernetes.io/managed-by: kustomize
 spec:
+  type: ClusterIP
   selector:
     app.kubernetes.io/name: redis
   ports:
-    - port: 6379
+    - name: redis
+      port: 6379
       targetPort: 6379
 ---
 apiVersion: apps/v1
@@ -31,6 +41,10 @@ kind: Deployment
 metadata:
   name: redis
   namespace: salleenfrance
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: salleenfrance
+    app.kubernetes.io/managed-by: kustomize
 spec:
   replicas: 1
   selector:
@@ -41,21 +55,39 @@ spec:
       labels:
         app.kubernetes.io/name: redis
         app.kubernetes.io/part-of: salleenfrance
+        app.kubernetes.io/managed-by: kustomize
     spec:
       containers:
         - name: redis
           image: redis:7-alpine
           args: ["redis-server", "/usr/local/etc/redis/redis.conf"]
           ports:
-            - containerPort: 6379
+            - name: redis
+              containerPort: 6379
           volumeMounts:
             - name: conf
               mountPath: /usr/local/etc/redis
-          # TODO : probes (readiness + liveness) — `redis-cli PING`.
-          readinessProbe: {}
-          livenessProbe:  {}
-          # TODO : resources.requests / limits.
-          resources: {}
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "PING"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "PING"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 192Mi
       volumes:
         - name: conf
           configMap:
