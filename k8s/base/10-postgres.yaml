@@ -7,11 +7,68 @@ kind: ConfigMap
 metadata:
   name: postgres-init
   namespace: salleenfrance
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: salleenfrance
+    app.kubernetes.io/managed-by: kustomize
 data:
   init.sql: |
-    -- TODO : à remplacer par le contenu de seed/init.sql
-    -- (vous pouvez aussi monter un ConfigMap généré à partir du fichier réel
-    --  via `kubectl create configmap postgres-init --from-file=seed/init.sql`)
+    -- =============================================================================
+    -- Schéma SalleEnFrance — initialisation
+    -- =============================================================================
+
+    CREATE TABLE IF NOT EXISTS users (
+      id          SERIAL PRIMARY KEY,
+      email       TEXT UNIQUE NOT NULL,
+      password    TEXT NOT NULL,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS sites (
+      id     SERIAL PRIMARY KEY,
+      name   TEXT NOT NULL,
+      city   TEXT NOT NULL,
+      region TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS rooms (
+      id        SERIAL PRIMARY KEY,
+      site_id   INT REFERENCES sites(id) ON DELETE CASCADE,
+      name      TEXT NOT NULL,
+      capacity  INT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS bookings (
+      id         SERIAL PRIMARY KEY,
+      room_id    INT REFERENCES rooms(id) ON DELETE CASCADE,
+      user_id    INT REFERENCES users(id) ON DELETE CASCADE,
+      starts_at  TIMESTAMPTZ NOT NULL,
+      ends_at    TIMESTAMPTZ NOT NULL,
+      CHECK (ends_at > starts_at)
+    );
+
+    INSERT INTO users (email, password) VALUES
+      ('demo@salleenfrance.fr', 'changeme'),
+      ('admin@salleenfrance.fr', 'changeme')
+    ON CONFLICT DO NOTHING;
+
+    INSERT INTO sites (name, city, region) VALUES
+      ('SalleEnFrance Paris République',  'Paris',     'Île-de-France'),
+      ('SalleEnFrance Lyon Part-Dieu',    'Lyon',      'Auvergne-Rhône-Alpes'),
+      ('SalleEnFrance Marseille Vieux-Port', 'Marseille', 'Provence-Alpes-Côte-d''Azur'),
+      ('SalleEnFrance Bordeaux Chartrons','Bordeaux',  'Nouvelle-Aquitaine'),
+      ('SalleEnFrance Lille Euralille',   'Lille',     'Hauts-de-France')
+    ON CONFLICT DO NOTHING;
+
+    INSERT INTO rooms (site_id, name, capacity) VALUES
+      (1, 'Versailles',  12),
+      (1, 'Concorde',    8),
+      (2, 'Fourvière',   10),
+      (2, 'Croix-Rousse', 6),
+      (3, 'Calanques',   14),
+      (4, 'Garonne',     8),
+      (5, 'Beffroi',     12)
+    ON CONFLICT DO NOTHING;
 ---
 apiVersion: v1
 kind: Service
@@ -21,6 +78,7 @@ metadata:
   labels:
     app.kubernetes.io/name: postgres
     app.kubernetes.io/part-of: salleenfrance
+    app.kubernetes.io/managed-by: kustomize
 spec:
   clusterIP: None        # headless — requis par le StatefulSet
   selector:
@@ -35,6 +93,10 @@ kind: StatefulSet
 metadata:
   name: postgres
   namespace: salleenfrance
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: salleenfrance
+    app.kubernetes.io/managed-by: kustomize
 spec:
   serviceName: postgres
   replicas: 1
@@ -46,6 +108,7 @@ spec:
       labels:
         app.kubernetes.io/name: postgres
         app.kubernetes.io/part-of: salleenfrance
+        app.kubernetes.io/managed-by: kustomize
     spec:
       securityContext:
         fsGroup: 999
@@ -66,15 +129,34 @@ spec:
               mountPath: /var/lib/postgresql/data
             - name: init
               mountPath: /docker-entrypoint-initdb.d
-          # TODO : déclarer une readinessProbe ET une livenessProbe
-          # Indices : commande `pg_isready -U $POSTGRES_USER`,
-          # `initialDelaySeconds` adapté au temps d'init du seed.
-          readinessProbe: {}  # TODO
-          livenessProbe:  {}  # TODO
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
 
-          # TODO : déclarer resources.requests et resources.limits (CPU/RAM).
-          # Justifiez les valeurs choisies dans le rapport.
-          resources: {}       # TODO
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
       volumes:
         - name: init
           configMap:
@@ -82,10 +164,13 @@ spec:
   volumeClaimTemplates:
     - metadata:
         name: data
+        labels:
+          app.kubernetes.io/name: postgres
+          app.kubernetes.io/part-of: salleenfrance
+          app.kubernetes.io/managed-by: kustomize
       spec:
         accessModes: ["ReadWriteOnce"]
-        # TODO : choisir une storageClassName et une taille adaptées
-        # storageClassName: standard
+        storageClassName: standard
         resources:
           requests:
-            storage: 0Gi   # TODO
+            storage: 2Gi
